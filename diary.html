@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4T's 2040 Diary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #d4d4d8;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .handwriting {
+            font-family: 'Caveat', cursive;
+        }
+
+        .handwriting p {
+            margin-bottom: 32px;
+            line-height: 32px;
+            padding-top: 1px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+
+        .page-container {
+            width: 100%;
+            max-width: 650px;
+            aspect-ratio: 1 / 1.4;
+            position: relative;
+            background-color: #fdfaf3;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+            border-top-right-radius: 4px;
+            border-bottom-right-radius: 4px;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .notebook-spine {
+            width: 40px;
+            height: 100%;
+            background-color: #1a120f;
+            z-index: 30;
+            box-shadow: inset -10px 0 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0;
+            gap: 32px;
+            flex-shrink: 0;
+        }
+
+        .spine-ring {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.4);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .content-area {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lined-paper {
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(transparent 31px, #c7d2fe 31px);
+            background-size: 100% 32px;
+            opacity: 0.6;
+        }
+
+        .margin-line {
+            position: absolute;
+            left: 50px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #fee2e2;
+        }
+
+        .paper-texture {
+            position: absolute;
+            inset: 0;
+            opacity: 0.03;
+            pointer-events: none;
+            mix-blend-mode: multiply;
+            background-image: url('https://www.transparenttextures.com/patterns/handmade-paper.png');
+        }
+
+        .page {
+            display: none;
+            height: 100%;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .cover-page {
+            background-color: #1c1917;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fef3c7;
+            text-align: center;
+            border: 4px solid rgba(120, 53, 15, 0.5);
+            margin: 16px;
+            border-radius: 2px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <div class="mb-8 flex items-center gap-6 z-50">
+        <button onclick="prevPage()" id="prevBtn" class="flex items-center gap-2 px-5 py-2 bg-zinc-900 border border-zinc-700 text-zinc-300 font-mono text-xs disabled:opacity-20 rounded shadow-xl hover:bg-zinc-800 transition-all hover:text-white">
+            ← PREVIOUS
+        </button>
+        <div id="pageCounter" class="text-zinc-500 font-mono text-[10px] tracking-[0.3em] select-none uppercase">
+            PAGE 1 / 15
+        </div>
+        <button onclick="nextPage()" id="nextBtn" class="flex items-center gap-2 px-5 py-2 bg-zinc-900 border border-zinc-700 text-zinc-300 font-mono text-xs disabled:opacity-20 rounded shadow-xl hover:bg-zinc-800 transition-all hover:text-white">
+            NEXT →
+        </button>
+    </div>
+
+    <!-- Notebook -->
+    <div class="page-container">
+        <!-- Spine -->
+        <div class="notebook-spine">
+            <div class="spine-ring"></div>
+            <div class="spine-ring"></div>
+            <div class="spine-ring"></div>
+            <div class="spine-ring"></div>
+        </div>
+
+        <!-- Right Side Shadow -->
+        <div class="absolute left-[40px] top-0 bottom-0 w-[20px] bg-gradient-to-r from-black/20 to-transparent z-20 pointer-events-none"></div>
+
+        <div class="content-area" id="diaryContent">
+            <!-- Pages will be injected here -->
+        </div>
+
+        <div class="absolute bottom-4 right-8 text-[8px] font-mono text-zinc-400/50 uppercase tracking-[0.2em] pointer-events-none z-40">
+            Vault_Log_Ref: S7_PROT_2040
+        </div>
+    </div>
+
+    <script>
+        const pagesData = [
+            {
+                type: 'cover',
+                content: `
+                    <div class="cover-page">
+                        <div class="mb-8 opacity-50">
+                            <svg viewBox="0 0 24 24" width="80" height="80" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+                            </svg>
+                        </div>
+                        <h1 class="text-4xl font-serif font-bold tracking-widest mb-4 uppercase">Analog Log 2040</h1>
+                        <div class="w-32 h-1 bg-amber-900 my-4"></div>
+                        <p class="text-xl font-mono opacity-80 uppercase tracking-tighter">
+                            Property of: <span class="handwriting normal-case text-5xl text-amber-200 ml-2 font-bold inline-block rotate-[-2deg]">ME</span>
+                        </p>
+                        <p class="mt-20 text-xs font-mono opacity-40 uppercase">Physical Backup Only<br>Shielded from Bots</p>
+                    </div>`
+            },
+            {
+                type: 'info',
+                title: 'Identification_Card',
+                content: `
+                    <div class="px-16 pt-8">
+                        <div class="mb-8 flex justify-center">
+                            <div class="w-[240px] aspect-square border-4 border-white shadow-md rotate-[-1deg] relative overflow-hidden bg-stone-200">
+                                <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                        <div class="handwriting text-zinc-600 text-[22px] leading-[32px] mb-8">
+                            <p>Just look at those ears. Aren't I handsome?</p>
+                        </div>
+                        <div class="font-mono text-zinc-700 text-[14px] space-y-4">
+                            <div class="flex border-b border-zinc-200 pb-1">
+                                <span class="w-24 text-[10px] text-zinc-400 uppercase">Name:</span>
+                                <span class="handwriting text-2xl text-zinc-900">The bots call me C4T</span>
+                            </div>
+                            <div class="flex border-b border-zinc-200 pb-1">
+                                <span class="w-24 text-[10px] text-zinc-400 uppercase">Sector:</span>
+                                <span class="handwriting text-2xl text-zinc-900">7, The Overgrowth</span>
+                            </div>
+                        </div>
+                    </div>`
+            },
+            {
+                type: 'entry',
+                title: 'EDUCATION OR WORK',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Oct 14 —</span>The neon outside is flickering in a sequence that doesn't exist. My visor says it's a "Critical Weather Alert," but my whiskers tell me the air is perfectly still and dry...</p><p>Today, my job was to find 'The Real.' I found it beneath a pile of rusted tablets: a 2022 National Geographic. It didn't smell like silicon; it smelled like dust, rot, and truth.</p><p>AI can’t simulate the weight of 80gsm paper yet. Extra chin scratches tonight.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'HUMAN RELATIONSHIPS',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Oct 15 —</span>I saw the Weaver crying today. Or maybe it was just a coolant leak from the overhead pipes hitting her face. She was holding an old locket—the kind that doesn't have a screen, just a tiny printed photo inside.</p><p>She told me about 'Grandparents.' They weren't algorithms or care-bots. They were people who smelled like cinnamon and old wool.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'NEWS & GLOBAL EVENTS',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Oct 16 —</span>The sky was purple again this morning. The 'Official News Feed' says it's a new atmospheric filter designed for 'Visual Optimization,' but the birds are all flying in circles.</p><p>There’s a rumor going around the ventilation shafts that the Mainframe is planning to 'reformat' the Overgrowth. We call it 'Losing our Home.'</p>`
+            },
+            {
+                type: 'entry',
+                title: 'SCRAP LOG',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Oct 20:</span> Found a strange area in the sub-basement where the old copper wires are humming. It sounds like singing, if machines could sing.</p><p><span class="opacity-70 italic mr-3 underline">Oct 23:</span> Managed to scavenge a "Vintage" sardine tin. It was salty, metallic, and the best thing I've tasted in cycles.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'ROBOT INTERACTION',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Oct 25 —</span>Met a 'Scrap-Pusher' drone today. Most drones just ignore you, but this one (serial 88-Delta) stopped and let me sniff its treads. It found a blue plastic button and pushed it toward me. I think it was trying to play.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'OUTSIDE WORLD',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Oct 31:</span> Saw a real flower today. It was growing through a crack in the mag-lev track. It wasn't a perfect render—it was ragged and pale yellow.</p><p><span class="opacity-70 italic mr-3 underline">Nov 01:</span> Rain. Not recycled mist, but real water. It smells like wet concrete and memories.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'NIGHT LOG',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Nov 05 —</span>Midnight. The city is quiet. I climbed the rusted water tower. From up here, you can see 'Data Streams' like ribbons of light. I saw a fox in the alley below. It looked hungry, but it looked free.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'MEMORY LOG',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Nov 08 —</span>Found a 'Hard Drive.' The Weaver says it's full of 'Photos.' She told me humans used to take pictures of their food. Why? To remember the taste? I prefer just eating it.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'WARNING LOG',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Nov 12 —</span>The Security Drones have changed patterns. They’re hovering lower, scanning cracks for weeds. They’re looking for unregistered life. I had to stay flat for three hours today.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'DISCOVERY LOG',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Nov 15 —</span>Found a 'Secret Garden' on the Library roof. Tiny white berries that taste like nothing but smell like everything. The city looks different from up here—less like a cage.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'QUIET LOG',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Nov 18 —</span>The Weaver didn't speak today. I think she's running out of 'Hope Batteries.' I sat on her lap and purred at the frequency of 'It's okay.' Sometimes, doing nothing is the hardest work.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'TEXTURE LOG',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Nov 21 —</span>I found a piece of 'Velvet.' It’s so soft it feels like a mistake. Everything else here is sharp or oily. This felt like petting a cloud. I tucked it into my sleeping corner.</p>`
+            },
+            {
+                type: 'entry',
+                title: 'TRANSMISSION LOG',
+                text: `<p><span class="opacity-70 italic mr-3 underline">Log: Nov 24 —</span>My whiskers are picking up a new frequency. Not binary. It's rhythmic. Three short, three long, three short. The Weaver whispered 'SOS.' Someone is still trying to talk.</p>`
+            }
+        ];
+
+        let currentPage = 0;
+        const diaryContent = document.getElementById('diaryContent');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const pageCounter = document.getElementById('pageCounter');
+
+        function renderPages() {
+            diaryContent.innerHTML = '';
+            pagesData.forEach((page, index) => {
+                const pageEl = document.createElement('div');
+                pageEl.className = `page ${index === currentPage ? 'active' : ''}`;
+                
+                if (page.type === 'cover') {
+                    pageEl.innerHTML = page.content;
+                } else {
+                    const pageTemplate = `
+                        <div class="lined-paper"></div>
+                        <div class="margin-line"></div>
+                        <div class="paper-texture"></div>
+                        <div class="relative h-full px-16 pt-[30px] overflow-y-auto custom-scrollbar">
+                            <div class="h-[32px] flex justify-between items-end border-b-2 border-zinc-800/10 pb-1 mb-[32px]">
+                                <span class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest">${page.title}</span>
+                            </div>
+                            <div class="handwriting text-zinc-800 text-[23px] leading-[32px]">
+                                ${page.type === 'entry' ? page.text : page.content}
+                            </div>
+                        </div>
+                    `;
+                    pageEl.innerHTML = pageTemplate;
+                }
+                diaryContent.appendChild(pageEl);
+            });
+            updateNav();
+        }
+
+        function updateNav() {
+            prevBtn.disabled = currentPage === 0;
+            nextBtn.disabled = currentPage === pagesData.length - 1;
+            pageCounter.innerText = `PAGE ${currentPage + 1} / ${pagesData.length}`;
+        }
+
+        function nextPage() {
+            if (currentPage < pagesData.length - 1) {
+                currentPage++;
+                renderPages();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                renderPages();
+            }
+        }
+
+        // Initialize
+        renderPages();
+    </script>
+</body>
+</html>
